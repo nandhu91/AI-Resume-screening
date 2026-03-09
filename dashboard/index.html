@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Screening</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-color: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 2rem 0;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .btn-custom {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-custom:hover {
+            background-color: var(--primary-hover);
+            transform: scale(1.05);
+            color: white;
+        }
+
+        .form-control, .form-control:focus {
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            color: white;
+            border-radius: 8px;
+        }
+
+        .form-control::placeholder {
+            color: #94a3b8;
+        }
+
+        input[type="file"]::file-selector-button {
+            border: none;
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            margin-right: 1rem;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background: var(--primary-hover);
+        }
+
+        .table-glass {
+            color: white;
+            margin-top: 1rem;
+        }
+
+        .table-glass th {
+            border-bottom: 2px solid var(--glass-border);
+            color: #cbd5e1;
+            padding-bottom: 1rem;
+        }
+
+        .table-glass td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background-color: transparent !important;
+            color: white;
+            vertical-align: middle;
+            padding: 1rem 0.5rem;
+        }
+
+        .header-title {
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #818cf8;
+            margin-bottom: 0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .chart-container-small {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .toast-custom {
+            background: #22c55e;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 250px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            font-weight: 600;
+        }
+        .toast-custom.show {
+            opacity: 1;
+        }
+        .toast-custom.error {
+            background: #ef4444;
+        }
+        .badge.bg-secondary {
+            background-color: rgba(255,255,255,0.1) !important;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="container">
+    <h1 class="header-title display-4 mt-3">✨ AI Resume Screening</h1>
+
+    <div class="row">
+        <!-- Dashboard / Upload -->
+        <div class="col-lg-4">
+            <div class="glass-card">
+                <h4 class="mb-3">📤 Upload Resume</h4>
+                <div class="mb-3">
+                    <input class="form-control" type="file" id="file" accept=".pdf">
+                </div>
+                <button class="btn-custom w-100" onclick="upload()">Analyze Resume</button>
+            </div>
+
+            <div class="glass-card">
+                <h4 class="mb-3">📊 Global Analytics</h4>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="stat-box mb-3">
+                            <p class="mb-0 small" style="color: #e2e8f0; font-weight: 600;">Total Profiles</p>
+                            <p class="stat-number fs-3" style="color: white;" id="total-stats">0</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-box mb-3">
+                            <p class="mb-0 small" style="color: #e2e8f0; font-weight: 600;">Avg Exp (Yrs)</p>
+                            <p class="stat-number fs-3" style="color: white;" id="avg-exp">0</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-box mb-3">
+                            <p class="mb-0 small" style="color: #e2e8f0; font-weight: 600;">Avg Score (%)</p>
+                            <p class="stat-number fs-3" style="color: white;" id="avg-score">0</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-box mb-3">
+                            <p class="mb-0 small" style="color: #e2e8f0; font-weight: 600;">Top Skill</p>
+                            <p class="stat-number fs-4 text-truncate mt-1" style="color: white; font-size: 1.5rem !important;" id="top-skill">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button class="btn btn-outline-light w-100" style="backdrop-filter: blur(4px);" onclick="fetchStats()">Refresh</button>
+                    <button class="btn btn-outline-danger w-100" style="backdrop-filter: blur(4px);" onclick="clearDB()">Clear DB</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ranking Area -->
+        <div class="col-lg-8">
+            <div class="glass-card">
+                <h4 class="mb-3">🎯 Rank Candidates</h4>
+                <div class="input-group mb-4">
+                    <span class="input-group-text bg-dark text-white border-secondary">Job Skills</span>
+                    <input type="text" id="skills" class="form-control" placeholder="e.g. python, sql, react" value="python, sql, machine learning">
+                    <button class="btn-custom m-0" style="border-radius: 0 8px 8px 0;" onclick="rank()">Calculate Rank</button>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Candidate Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="glass-card">
+                <h4 class="mb-3">📋 Candidate Results</h4>
+                <div class="table-responsive">
+                    <table class="table table-glass text-center" id="table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Match Score</th>
+                                <th>Skills Matched</th>
+                                <th>Experience (Years)</th>
+                                <th>Education Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr><td colspan="5" class="text-muted border-0">No candidates ranked yet. Enter skills and hit calculate.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Visualizations -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="glass-card d-flex flex-column h-100">
+                <h4 class="mb-3 text-center">🧠 Skill Demographics</h4>
+                <div class="chart-container-small flex-grow-1">
+                    <canvas id="skills-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card d-flex flex-column h-100">
+                <h4 class="mb-3 text-center">📈 Experience Distribution</h4>
+                <div class="chart-container-small flex-grow-1" style="height: 250px;">
+                    <canvas id="exp-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card d-flex flex-column h-100">
+                <h4 class="mb-3 text-center">🎓 Education Profiles</h4>
+                <div class="chart-container-small flex-grow-1">
+                    <canvas id="edu-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "/api";
+    let chartInstance = null;
+    let skillsChartInstance = null;
+    let expChartInstance = null;
+    let eduChartInstance = null;
+
+    function showToast(message, type="success") {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast-custom show ${type === 'error' ? 'error' : ''}`;
+        toast.innerHTML = `<span>${message}</span>`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 500); // Wait for transition
+        }, 3000);
+    }
+
+    async function fetchStats() {
+        try {
+            let res = await fetch(`${API_URL}/stats`);
+            let data = await res.json();
+            
+            document.getElementById("total-stats").innerText = data.total;
+            document.getElementById("avg-exp").innerText = data.avg_exp || 0;
+            document.getElementById("avg-score").innerText = data.avg_score || 0;
+            
+            document.getElementById("top-skill").innerText = 
+                (data.top_skills && data.top_skills.length > 0) ? data.top_skills[0].skill : "-";
+                
+            renderSkillsChart(data.skill_labels || [], data.skill_data || []);
+            renderExpChart(data.exp_labels || [], data.exp_data || []);
+            renderEduChart(data.edu_labels || [], data.edu_data || []);
+        } catch (e) {
+            console.error("Failed to fetch stats", e);
+        }
+    }
+
+    async function clearDB() {
+        if(!confirm("Are you sure you want to clear the database?")) return;
+        
+        try {
+            let res = await fetch(`${API_URL}/clear`, { method: "DELETE" });
+            if (res.ok) {
+                fetchStats();
+                document.getElementById("table-body").innerHTML = `<tr><td colspan="5" class="text-muted border-0">Database cleared.</td></tr>`;
+                if (chartInstance) {
+                    chartInstance.destroy();
+                    chartInstance = null;
+                }
+                if (skillsChartInstance) {
+                    skillsChartInstance.destroy();
+                    skillsChartInstance = null;
+                }
+                if (expChartInstance) {
+                    expChartInstance.destroy();
+                    expChartInstance = null;
+                }
+                if (eduChartInstance) {
+                    eduChartInstance.destroy();
+                    eduChartInstance = null;
+                }
+                showToast("Database cleared successfully!");
+            }
+        } catch (e) {
+            showToast("Failed to clear database.", "error");
+        }
+    }
+
+    async function upload() {
+        const fileInput = document.getElementById("file");
+        if (!fileInput.files.length) {
+            showToast("Please select a file first.", "error");
+            return;
+        }
+        
+        const file = fileInput.files[0];
+        let form = new FormData();
+        form.append("file", file);
+
+        try {
+            let res = await fetch(`${API_URL}/upload`, {
+                method: "POST",
+                body: form
+            });
+            if (res.ok) {
+                showToast("Resume uploaded and parsed successfully!");
+                fetchStats(); // Update the dash
+                fileInput.value = ""; // Clear file input
+            } else {
+                throw new Error("Upload failed");
+            }
+        } catch (e) {
+            showToast("Error uploading file.", "error");
+        }
+    }
+
+    async function rank() {
+        let skillsInput = document.getElementById("skills").value;
+        if (!skillsInput.trim()) {
+            showToast("Please enter at least one skill.", "error");
+            return;
+        }
+
+        let skills = skillsInput.split(",").map(s => s.trim().toLowerCase()).filter(s => s);
+
+        try {
+            let res = await fetch(`${API_URL}/rank`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(skills)
+            });
+            
+            let data = await res.json();
+            
+            if (data.length === 0) {
+                document.getElementById("table-body").innerHTML = `<tr><td colspan="5" class="text-muted border-0">No candidates to rank. Upload resumes first.</td></tr>`;
+                if(chartInstance) {
+                    chartInstance.destroy();
+                    chartInstance = null;
+                }
+                showToast("No candidates found in database.", "error");
+                return;
+            }
+
+            renderTable(data);
+            renderChart(data);
+            showToast("Candidates ranked successfully!");
+
+        } catch (e) {
+            showToast("Failed to rank candidates.", "error");
+        }
+    }
+
+    function renderTable(data) {
+        let tbody = document.getElementById("table-body");
+        tbody.innerHTML = "";
+        
+        data.forEach((c, index) => {
+            let tr = document.createElement("tr");
+            
+            // Highlight skills inside badges
+            let skillsBadges = c.skills && c.skills.length > 0 
+                ? c.skills.map(s => `<span class="badge bg-secondary me-1">${s}</span>`).join('') 
+                : `<span class="text-muted">None</span>`;
+
+            tr.innerHTML = `
+                <td>Candidate ${index + 1}</td>
+                <td><strong style="color: #4ade80;">${(c.score * 100).toFixed(0)}%</strong></td>
+                <td>${skillsBadges}</td>
+                <td>${c.experience}</td>
+                <td>${c.education}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderChart(data) {
+        const ctx = document.getElementById("chart");
+        
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: data.map((_, i) => "Candidate " + (i + 1)),
+                datasets: [{
+                    label: "Match Score (%)",
+                    data: data.map(c => c.score * 100),
+                    backgroundColor: "rgba(99, 102, 241, 0.7)",
+                    borderColor: "rgba(99, 102, 241, 1)",
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: "rgba(255, 255, 255, 0.1)" },
+                        ticks: { color: "#cbd5e1", callback: function(value) { return value + '%' } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: "#cbd5e1" }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: "#f8fafc" } }
+                }
+            }
+        });
+    }
+
+    function renderSkillsChart(labels, data) {
+        const ctx = document.getElementById("skills-chart");
+        
+        if (skillsChartInstance) {
+            skillsChartInstance.destroy();
+        }
+
+        if (labels.length === 0) return;
+
+        skillsChartInstance = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        "#818cf8", "#c084fc", "#4ade80", "#f472b6", "#fbbf24"
+                    ],
+                    borderColor: "#1e293b",
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'right',
+                        labels: { color: "#f8fafc", boxWidth: 12 } 
+                    }
+                }
+            }
+        });
+    }
+
+    function renderExpChart(labels, data) {
+        const ctx = document.getElementById("exp-chart");
+        if (expChartInstance) expChartInstance.destroy();
+        if (labels.length === 0) return;
+
+        expChartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Candidates",
+                    data: data,
+                    backgroundColor: "#fbbf24",
+                    borderColor: "#f59e0b",
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: "rgba(255, 255, 255, 0.1)" },
+                        ticks: { color: "#cbd5e1", stepSize: 1 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: "#cbd5e1" }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    function renderEduChart(labels, data) {
+        const ctx = document.getElementById("edu-chart");
+        if (eduChartInstance) eduChartInstance.destroy();
+        if (labels.length === 0) return;
+
+        eduChartInstance = new Chart(ctx, {
+            type: "pie",
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: ["#34d399", "#ef4444"],
+                    borderColor: "#1e293b",
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'bottom',
+                        labels: { color: "#f8fafc", boxWidth: 12 } 
+                    }
+                }
+            }
+        });
+    }
+
+    // Auto-fetch stats immediately on load
+    window.onload = fetchStats;
+
+</script>
+
+</body>
+</html>
